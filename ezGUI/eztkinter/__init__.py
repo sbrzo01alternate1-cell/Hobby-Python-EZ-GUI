@@ -627,9 +627,11 @@ MyezImage.Update() Probably not needed. This applies our changes all at once. Ta
 #x=90, y=652
 #x=95, y=686
 #x=100, y=721
+import inspect
+
 class ezText():
     def __init__(self, MyText, relx=1500, rely=400, relfont_size=10000,
-                 font_name="Arial", anchor="nw", scrolling=True, transparency=10000):
+                 font_name="Arial", anchor="nw", scrolling=True, transparency=10000, color="black"):
         self.MyText = MyText
         self.relx = relx
         self.rely = rely
@@ -638,6 +640,7 @@ class ezText():
         self.anchor = anchor
         self.scrolling = scrolling
         self.transparency = transparency
+        self.color = color
         self.visibility = "normal"
         # --- previous states ---
         self.previous_relx = self.relx
@@ -647,6 +650,7 @@ class ezText():
         self.previous_text = self.MyText
         self.previous_font_name = self.font_name
         self.previous_transparency = self.transparency
+        self.previous_color = self.color
         self.previous_visibility = self.visibility
         # --- compute initial font size ---
         self.font_size = int((rglobals.sq_size - 4.36842) *
@@ -657,7 +661,8 @@ class ezText():
             int((self.rely/10000)*rglobals.sq_size)+rglobals.y_offset,
             text=self.MyText,
             font=(self.font_name, self.font_size),
-            anchor=self.anchor
+            anchor=self.anchor,
+            fill=self.color
         )
         rglobals.AllItems.add(self)
     def move(self,XAmount=0,YAmount=0):
@@ -672,6 +677,8 @@ class ezText():
         self.relfont_size += relfont_size_amount
     def SetText(self,NewText):
         self.MyText = NewText
+    def SetColor(self, color="black"):
+        self.color = color
     def ChangeTransparency(self, amount):
         self.transparency = max(0, min(10000, self.transparency + amount))
     def SetTransparency(self, transparency):
@@ -726,6 +733,7 @@ class ezText():
         TextChanged = (self.MyText != self.previous_text)
         FontChanged = (self.font_name != self.previous_font_name)
         TransparencyChanged = (self.transparency != self.previous_transparency)
+        ColorChanged = (self.color != self.previous_color)
         VisibilityChanged = (self.visibility != self.previous_visibility)
         # --- visibility update ---
         if VisibilityChanged:
@@ -762,6 +770,9 @@ class ezText():
         # --- text update ---
         if TextChanged:
             rglobals.canvas.itemconfig(self.text_id, text=self.MyText)
+        # --- color update ---
+        if ColorChanged:
+            rglobals.canvas.itemconfig(self.text_id, fill=self.color)
         # --- transparency update ---
         if TransparencyChanged:
             rglobals.canvas.itemconfig(
@@ -778,6 +789,7 @@ class ezText():
         self.previous_text = self.MyText
         self.previous_font_name = self.font_name
         self.previous_transparency = self.transparency
+        self.previous_color = self.color
     def delete(self):
         # Remove from canvas
         try:
@@ -809,7 +821,7 @@ class ezText():
         return f"""
 This is an ezText object! It creates an easy text on screen and automatically handles putting it on the screen, changing it, and it is OPTIMIZED automatically, only updating when it needs to! So don't worry about optimizations.
 You can create an easy text like this:
-MyezText = ezText(MyText="Text to place on screen", relx={defaults['relx']}, rely={defaults['rely']}, relfont_size={defaults['relfont_size']}, font_name="{defaults['font_name']}", anchor="{defaults['anchor']}", scrolling={defaults['scrolling']}, transparency={defaults['transparency']})
+MyezText = ezText(MyText="Text to place on screen", relx={defaults['relx']}, rely={defaults['rely']}, relfont_size={defaults['relfont_size']}, font_name="{defaults['font_name']}", anchor="{defaults['anchor']}", scrolling={defaults['scrolling']}, transparency={defaults['transparency']}, color="{defaults['color']}")
 WOAH lots of stuff there! Don't worry, most of it's not necessary, but let's explain it!
 relx means relative x position, meaning it automatically changes based on the window size, so you don't have to worry about other windows or devices!
 rely means relative y position.
@@ -818,6 +830,7 @@ font_name is the type of font you want the text to have (like Arial or Comic San
 anchor means north east south west. It must be n, ne, e, se, s, sw, w, nw, or center. It changes where the text is anchored relative to its position!
 scrolling means is it allowed to scroll or is it stuck to the screen position?
 transparency means... exactly what it says, 10,000 is fully visible, and lower numbers stipple it out! (Tkinter text transparency is funky like that)
+color can be standard color names like "red", "blue", "white", or hex codes like "#ff0055".
 
 Here are the functions you need:
 
@@ -826,6 +839,7 @@ MyezText.SetPosition(relx=0, rely=0) This function sets the text to an absolute 
 MyezText.SetSize(relfont_size) This function directly sets the font size to a specific relative value.
 MyezText.ChangeSize(relfont_size_amount) This function changes the relative font size by adding or subtracting an amount.
 MyezText.SetText(NewText) This function updates what the text actually says on the screen.
+MyezText.SetColor(color="black") This function changes the color of the text. Supports names or Hex codes.
 MyezText.ChangeTransparency(amount) This function changes the stipple transparency. Max is 10,000.
 MyezText.SetTransparency(transparency) This function sets the stipple transparency to a specific value between 0 and 10,000.
 MyezText.hide() This function makes the text invisible. It does NOT delete it.
@@ -837,7 +851,6 @@ MyezText.delete() This completely obliterates the text from the canvas and force
 
 MyezText.Update() Probably not needed. This applies our position, sizing, text, and visibility updates all at once dynamically. It runs automatically behind the scenes per frame!
 """
-
 
 
 class ezLine():
