@@ -1838,10 +1838,15 @@ MyezPolygon.Update() Probably not needed. This dynamic updater redraws all verte
 """
 
 
+
+import tkinter as tk
+import inspect
+
 class ezButton():
     def __init__(self, text, relx=4300, rely=9450, command=None,
                  relwidth=1370, relheight=570, relfontsize=10,
-                 anchor="nw", scrolling=True):
+                 anchor="nw", scrolling=True, font_color="black", background_color="white",
+                 hover_font_color="black", hover_background_color="lightgray"):
 
         self.text = text
         self.relx = relx
@@ -1852,6 +1857,10 @@ class ezButton():
         self.command = command
         self.anchor = anchor
         self.scrolling = scrolling
+        self.font_color = font_color
+        self.background_color = background_color
+        self.hover_font_color = hover_font_color
+        self.hover_background_color = hover_background_color
         self.visibility = "normal"
 
         # Previous states
@@ -1864,9 +1873,21 @@ class ezButton():
         self.previous_anchor = anchor
         self.previous_visibility = self.visibility
         self.previous_command = command
+        self.previous_font_color = font_color
+        self.previous_background_color = background_color
+        self.previous_hover_font_color = hover_font_color
+        self.previous_hover_background_color = hover_background_color
 
-        # Create button widget
-        self.button = tk.Button(rglobals.canvas, text=self.text, command=self.command)
+        # Create button widget with colors and hover/active colors
+        self.button = tk.Button(
+            rglobals.canvas, 
+            text=self.text, 
+            command=self.command, 
+            fg=self.font_color, 
+            bg=self.background_color,
+            activeforeground=self.hover_font_color,
+            activebackground=self.hover_background_color
+        )
 
         # Create canvas window
         self.button_window_id = rglobals.canvas.create_window(
@@ -1882,8 +1903,9 @@ class ezButton():
         self.font_size = int(rglobals.sq_size * self.relfontsize * 0.002)
         self.button.config(font=("Arial", self.font_size))
         rglobals.AllItems.add(self)
+
     # ------------------
-    # Movement / sizing
+    # Movement / sizing / styling
     # ------------------
     def move(self, XAmount=0, YAmount=0):
         self.relx += XAmount
@@ -1906,6 +1928,18 @@ class ezButton():
 
     def SetCommand(self, command):
         self.command = command
+
+    def SetFontColor(self, color):
+        self.font_color = color
+
+    def SetBackgroundColor(self, color):
+        self.background_color = color
+
+    def SetHoverFontColor(self, color):
+        self.hover_font_color = color
+
+    def SetHoverBackgroundColor(self, color):
+        self.hover_background_color = color
 
     def hide(self):
         self.visibility = "hidden"
@@ -1938,6 +1972,14 @@ class ezButton():
         AnchorChanged = (self.anchor != self.previous_anchor)
         CommandChanged = (self.command != self.previous_command)
         VisibilityChanged = (self.visibility != self.previous_visibility)
+        
+        ColorChanged = (
+            self.font_color != self.previous_font_color or 
+            self.background_color != self.previous_background_color or
+            self.hover_font_color != self.previous_hover_font_color or
+            self.hover_background_color != self.previous_hover_background_color
+        )
+        
         # Auto show if in bounds
         in_bounds = (
             rglobals.minimum_relx < self.relx < rglobals.maximum_relx and
@@ -1955,7 +1997,6 @@ class ezButton():
 
         # Position update
         if PositionChanged or rglobals.WindowChanged or rglobals.ScrollChanged:
-
             x = ((self.relx / 10000) * rglobals.sq_size) + rglobals.x_offset
             y = ((self.rely / 10000) * rglobals.sq_size) + rglobals.y_offset
 
@@ -1986,6 +2027,15 @@ class ezButton():
         if CommandChanged:
             self.button.config(command=self.command)
 
+        # Color update (including hover/active colors)
+        if ColorChanged:
+            self.button.config(
+                fg=self.font_color, 
+                bg=self.background_color,
+                activeforeground=self.hover_font_color,
+                activebackground=self.hover_background_color
+            )
+
         # Anchor update
         if AnchorChanged:
             rglobals.canvas.itemconfig(self.button_window_id, anchor=self.anchor)
@@ -1999,7 +2049,6 @@ class ezButton():
     # ------------------
     # Store previous
     # ------------------
-
     def _store_previous(self):
         self.previous_relx = self.relx
         self.previous_rely = self.rely
@@ -2009,36 +2058,40 @@ class ezButton():
         self.previous_text = self.text
         self.previous_anchor = self.anchor
         self.previous_command = self.command
+        self.previous_font_color = self.font_color
+        self.previous_background_color = self.background_color
+        self.previous_hover_font_color = self.hover_font_color
+        self.previous_hover_background_color = self.hover_background_color
+
     def delete(self):
-        # Remove from canvas
         try:
             if hasattr(self, "button_window_id") and self.button_window_id and hasattr(rglobals, "canvas"):
                 rglobals.canvas.delete(self.button_window_id)
         except Exception:
             pass
 
-        # Destroy the Tkinter button widget
         try:
             if hasattr(self, "button") and self.button:
                 self.button.destroy()
         except Exception:
             pass
 
-        # Remove from global item tracking
         try:
             if hasattr(rglobals, "AllItems") and self in rglobals.AllItems:
                 rglobals.AllItems.remove(self)
         except Exception:
             pass
 
-        # Clear key attributes
         attrs_to_clear = [
             "button", "button_window_id", "text", "command",
             "relx", "rely", "relwidth", "relheight", "relfontsize",
-            "anchor", "scrolling", "visibility", "font_size",
+            "anchor", "scrolling", "visibility", "font_size", "font_color", "background_color",
+            "hover_font_color", "hover_background_color",
             "previous_relx", "previous_rely", "previous_relwidth",
             "previous_relheight", "previous_relfontsize", "previous_text",
-            "previous_anchor", "previous_visibility", "previous_command"
+            "previous_anchor", "previous_visibility", "previous_command",
+            "previous_font_color", "previous_background_color",
+            "previous_hover_font_color", "previous_hover_background_color"
         ]
         for attr in attrs_to_clear:
             if hasattr(self, attr):
@@ -2047,23 +2100,21 @@ class ezButton():
                 except Exception:
                     pass
 
-        # Delete any remaining instance variables
         for attr in list(self.__dict__.keys()):
             try:
                 delattr(self, attr)
             except Exception:
                 pass
 
-        # Encourage garbage collection
         import gc
         gc.collect()
+
     def __repr__(self):
-        # Grab default values from the __init__ signature
         defaults = {k: v.default for k, v in inspect.signature(self.__init__).parameters.items() if v.default is not inspect.Parameter.empty}
         return f"""
 This is an ezButton object! It creates a fully working, clickable Tkinter button inside your canvas and automatically handles scaling it, placing it, and OPTIMIZING it behind the scenes! No performance headaches here.
 You can create an easy button like this:
-MyezButton = ezButton(text="Click Me!", relx={defaults['relx']}, rely={defaults['rely']}, command=my_function_name, relwidth={defaults['relwidth']}, relheight={defaults['relheight']}, relfontsize={defaults['relfontsize']}, anchor="{defaults['anchor']}", scrolling={defaults['scrolling']})
+MyezButton = ezButton(text="Click Me!", relx={defaults['relx']}, rely={defaults['rely']}, command=my_function_name, relwidth={defaults['relwidth']}, relheight={defaults['relheight']}, relfontsize={defaults['relfontsize']}, anchor="{defaults['anchor']}", scrolling={defaults['scrolling']}, font_color="{defaults['font_color']}", background_color="{defaults['background_color']}", hover_font_color="{defaults['hover_font_color']}", hover_background_color="{defaults['hover_background_color']}")
 WOAH lots of stuff there! Don't worry, most of it's not necessary, but let's explain it!
 text is whatever message or label you want stamped right onto the front of the button.
 relx means relative x position, meaning it automatically changes based on the window size, so you don't have to worry about other windows or devices!
@@ -2074,6 +2125,10 @@ relheight is the relative height of the button box.
 relfontsize controls the relative scale of the button text so it changes size nicely with your window scale.
 anchor means north east south west. It must be n, ne, e, se, s, sw, w, nw, or center. It dictates which corner or side of the button aligns with your (relx, rely) spot.
 scrolling means is it allowed to scroll or is it stuck static to the screen position?
+font_color changes the color of the text (e.g., 'black', 'red', '#FFFFFF').
+background_color changes the background fill of the button widget.
+hover_font_color changes the text color when the button is actively being clicked/hovered.
+hover_background_color changes the background fill color when the button is actively being clicked/hovered.
 
 Here are the functions you need:
 
@@ -2083,15 +2138,17 @@ MyezButton.SetSize(relwidth, relheight) This directly resizes the button dimensi
 MyezButton.ChangeSize(dw, dh) This scales the button's width and height up or down from its current size.
 MyezButton.SetText(new_text) Change the text display on the button dynamically.
 MyezButton.SetCommand(command) Swaps out what function runs when the button gets clicked on the fly!
+MyezButton.SetFontColor(color) Changes the button's font color dynamically.
+MyezButton.SetBackgroundColor(color) Changes the button's background color dynamically.
+MyezButton.SetHoverFontColor(color) Changes the hover text color dynamically.
+MyezButton.SetHoverBackgroundColor(color) Changes the hover background color dynamically.
 MyezButton.hide() This function makes the button completely invisible. It does NOT delete it.
 MyezButton.show() This makes the button pop back onto the screen if it was hidden.
 MyezButton.SetScroll(scrolling=True) Sets whether the button rolls along with canvas scroll movements or stays glued in place.
 MyezButton.delete() This completely destroys the Tkinter widget, rips it off the canvas window, and forces garbage collection to keep things clean.
 
-MyezButton.Update() Probably not needed. This recalculates positions, window scales, text fonts, and callback bindings automatically behind the scenes per frame!
+MyezButton.Update() Probably not needed. This recalculates positions, window scales, text fonts, colors, and callback bindings automatically behind the scenes per frame!
 """
-
-
 
 class ezMessage():
     def __init__(self, text, relx=1500, rely=400, relwidth=3000,
