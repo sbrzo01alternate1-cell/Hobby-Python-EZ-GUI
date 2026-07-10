@@ -897,6 +897,9 @@ class ezLine():
     def SetWidth(self, relwidth):
         self.relwidth = relwidth
 
+    def ChangeWidth(self, amount):
+        self.relwidth = max(0, min(10000, self.relwidth + amount))
+
     def SetColor(self, fill):
         self.fill = fill
 
@@ -911,6 +914,9 @@ class ezLine():
 
     def show(self):
         self.visibility = "normal"
+
+    def SetVisibility(self,visibility):
+        self.visibility = visibility
 
     def SetScroll(self, scrolling=True):
         self.scrolling = scrolling
@@ -1068,6 +1074,7 @@ Here are the functions you need:
 
 MyezLine.SetPosition(relx1, rely1, relx2, rely2) This function shifts the start and end coordinates of the line to a specific relative spot.
 MyezLine.SetWidth(relwidth) This function sets the thickness of the line to a specific relative width.
+MyezLine.ChangeWidth(amount) This function changes the thickness of the line, adding or subtracting the amount.
 MyezLine.SetColor(fill) This changes the color of the line on the fly.
 MyezLine.ChangeTransparency(amount) This function changes the line's stipple transparency by adding or subtracting an amount. Max is 10,000.
 MyezLine.SetTransparency(transparency) This function directly sets the transparency to a specific value between 0 and 10,000.
@@ -1081,6 +1088,144 @@ MyezLine.delete() This completely wipes the line off the Tkinter canvas and clea
 MyezLine.Update() Probably not needed. This syncs up all position, color, and size shifts simultaneously behind the scenes right before the frame renders!
 """
 
+class ezBoundaries():
+    def __init__(self,fill="red",relwidth=3,transparency=10000):
+        self.relwidth = relwidth
+        self.fill=fill
+        self.transparency = transparency
+        self.visibility = "normal"
+        self.Boundary1 = ezLine(0,0,10000,10000,fill=self.fill,relwidth=self.relwidth,transparency=self.transparency)
+        self.Boundary2 = ezLine(10000,0,0,10000,fill=self.fill,relwidth=self.relwidth,transparency=self.transparency)
+        self.Boundary3 = ezLine(0,0,0,10000,fill=self.fill,relwidth=self.relwidth,transparency=self.transparency)
+        self.Boundary4 = ezLine(0,0,10000,0,fill=self.fill,relwidth=self.relwidth,transparency=self.transparency)
+        self.Boundary5 = ezLine(0,10000,10000,10000,fill=self.fill,relwidth=self.relwidth,transparency=self.transparency)
+        self.Boundary6 = ezLine(10000,0,10000,10000,fill=self.fill,relwidth=self.relwidth,transparency=self.transparency)
+        rglobals.AllItems.add(self)
+        self.previous_relwidth = self.relwidth
+        self.previous_fill = self.fill
+        self.previous_transparency = self.transparency
+        self.previous_visibility = self.visibility
+    def SetWidth(self, relwidth):
+        self.relwidth = relwidth
+
+    def ChangeWidth(self, amount):
+        self.relwidth = max(0, min(10000, self.relwidth + amount))
+
+    def SetColor(self, fill):
+        self.fill = fill
+
+    def ChangeTransparency(self, amount):
+        self.transparency = max(0, min(10000, self.transparency + amount))
+
+    def SetTransparency(self, transparency):
+        self.transparency = max(0, min(10000, transparency))
+
+    def hide(self):
+        self.visibility = "hidden"
+
+    def show(self):
+        self.visibility = "normal"
+
+    def SetVisibility(self,visibility):
+        self.visibility = visibility
+
+    def Update(self):
+        WidthChanged = (self.relwidth != self.previous_relwidth)
+        ColorChanged = (self.fill != self.previous_fill)
+        TransparencyChanged = (self.transparency != self.previous_transparency)
+        VisibilityChanged = (self.visibility != self.previous_visibility)
+
+        if WidthChanged:
+            self.Boundary1.SetWidth(self.relwidth)
+            self.Boundary2.SetWidth(self.relwidth)
+            self.Boundary3.SetWidth(self.relwidth)
+            self.Boundary4.SetWidth(self.relwidth)
+            self.Boundary5.SetWidth(self.relwidth)
+            self.Boundary6.SetWidth(self.relwidth)
+        if ColorChanged:
+            self.Boundary1.SetColor(self.fill)
+            self.Boundary2.SetColor(self.fill)
+            self.Boundary3.SetColor(self.fill)
+            self.Boundary4.SetColor(self.fill)
+            self.Boundary5.SetColor(self.fill)
+            self.Boundary6.SetColor(self.fill)
+        if TransparencyChanged:
+            self.Boundary1.SetTransparency(self.transparency)
+            self.Boundary2.SetTransparency(self.transparency)
+            self.Boundary3.SetTransparency(self.transparency)
+            self.Boundary4.SetTransparency(self.transparency)
+            self.Boundary5.SetTransparency(self.transparency)
+            self.Boundary6.SetTransparency(self.transparency)
+        if VisibilityChanged:
+            self.Boundary1.SetVisibility(self.visibility)
+            self.Boundary2.SetVisibility(self.visibility)
+            self.Boundary3.SetVisibility(self.visibility)
+            self.Boundary4.SetVisibility(self.visibility)
+            self.Boundary5.SetVisibility(self.visibility)
+            self.Boundary6.SetVisibility(self.visibility)
+
+        self.previous_relwidth = self.relwidth
+        self.previous_fill = self.fill
+        self.previous_transparency = self.transparency
+        self.previous_visibility = self.visibility
+    def delete(self):
+        # 1. Safely call delete on all child ezLine objects
+        for i in range(1, 7):
+            boundary_attr = f"Boundary{i}"
+            if hasattr(self, boundary_attr):
+                line_obj = getattr(self, boundary_attr)
+                if line_obj and hasattr(line_obj, "delete"):
+                    try:
+                        line_obj.delete()
+                    except Exception:
+                        pass
+
+        # 2. Remove this ezBoundaries instance from global item tracking
+        try:
+            if hasattr(rglobals, "AllItems") and self in rglobals.AllItems:
+                rglobals.AllItems.remove(self)
+        except Exception:
+            pass
+
+        # 3. Wipe all instance variables belonging to this ezBoundaries object
+        for attr in list(self.__dict__.keys()):
+            try:
+                delattr(self, attr)
+            except Exception:
+                pass
+
+        # 4. Encourage garbage collection (matching your ezLine pattern)
+        import gc
+        gc.collect()
+    def __repr__(self):
+        # Grab default values from the __init__ signature dynamically
+        import inspect
+        defaults = {k: v.default for k, v in inspect.signature(self.__init__).parameters.items() if v.default is not inspect.Parameter.empty}
+        
+        return f"""
+This is an ezBoundaries object! It generates a massive bounding container made up of SIX optimized ezLine objects (forming a bounding box and an X across the center) showing you exactly what I mean when I say rglobals.sq_size, window_width, window_height, or whatever!
+
+You can create an ezBoundaries container like this:
+MyezBoundaries = ezBoundaries(fill="{defaults['fill']}", relwidth={defaults['relwidth']}, transparency={defaults['transparency']})
+
+Super simple to set up! Let's break down what these starting values mean:
+fill means the color of all six boundary lines. You can pass names like "red" or hex codes like "#FF0000"!
+relwidth means the relative thickness of all the boundary lines simultaneously.
+transparency controls the visibility stippling effect, where 10,000 is completely solid and lower numbers create a retro mesh transparency.
+
+Here are the functions you need to control the boundaries:
+
+MyezBoundaries.SetWidth(relwidth) Sets a brand new relative thickness for all six boundary lines at once.
+MyezBoundaries.ChangeWidth(amount) Adjusts the thickness of the lines by adding or subtracting an amount.
+MyezBoundaries.SetColor(fill) Dynamically changes the color of all lines on the fly.
+MyezBoundaries.ChangeTransparency(amount) Shifts the transparency mesh value up or down. Max is 10,000.
+MyezBoundaries.SetTransparency(transparency) Directly overrides the transparency to a specific value between 0 and 10,000.
+MyezBoundaries.hide() Makes the entire bounding system completely invisible without losing your settings.
+MyezBoundaries.show() Brings the bounding box right back to normal visibility if it was hidden.
+MyezBoundaries.delete() Wipes all six lines from the canvas, clears them from tracking, and flushes the memory instantly.
+
+MyezBoundaries.Update() Usually handled automatically! This checks behind the scenes for updates and pushes changes down to the individual lines right before the frame renders.
+"""
 
 class ezRectangle():
     def __init__(self, relx1=100, rely1=100, relx2=200, rely2=200,
