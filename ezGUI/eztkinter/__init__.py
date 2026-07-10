@@ -3879,6 +3879,11 @@ def ezFolderInput():
     )
     return folder_path
 
+def ezFileInput():
+    file_path = filedialog.askopenfilename(
+        title="Select a file"
+    )
+    return file_path
 
 def StartMainLoop():
     global previous_keys_held
