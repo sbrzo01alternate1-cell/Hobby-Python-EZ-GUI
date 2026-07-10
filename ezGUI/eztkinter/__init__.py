@@ -260,7 +260,7 @@ rglobals.y_offset = {rglobals.y_offset}
 """
 
 class ezImage():
-    def __init__(self, ImagePath, relx=500, rely=500, relwidth=-1, relheight=-1, angle=0, transparency=10000, anchor="nw", scrolling=True, quality=0):
+    def __init__(self, ImagePath, relx=500, rely=500, relwidth=-1, relheight=-1, angle=0, transparency=10000, anchor="center", scrolling=True, quality=0):
         self.ImagePath = ImagePath
         self.original_img = Image.open(ImagePath).convert("RGBA")
         self.relx = relx
