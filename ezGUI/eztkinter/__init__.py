@@ -3211,7 +3211,7 @@ MyezInputText.Update() Probably not needed. This syncs up position shifts, relat
 
 
 
-class ezCheckbox():
+class ezCheckBox():
     def __init__(self, text, relx=5000, rely=5000, relwidth=2000, relheight=500, 
                  relfontsize=10, initial_state=False, command=None, scrolling=True):
         self.text = text
