@@ -1227,15 +1227,17 @@ MyezBoundaries.delete() Wipes all six lines from the canvas, clears them from tr
 MyezBoundaries.Update() Usually handled automatically! This checks behind the scenes for updates and pushes changes down to the individual lines right before the frame renders.
 """
 
+#anchor = n, ne, e, se, s, sw, w, nw, or center
 class ezRectangle():
-    def __init__(self, relx1=100, rely1=100, relx2=200, rely2=200,
+    def __init__(self, relx=100, rely=100, relwidth=200, relheight=200,
                  fill="blue", outline="black", relstroke=1,
-                 scrolling=True, transparency=10000):
+                 scrolling=True, transparency=10000, anchor="center"):
 
-        self.relx1 = relx1
-        self.rely1 = rely1
-        self.relx2 = relx2
-        self.rely2 = rely2
+        self.relx = relx
+        self.rely = rely
+        self.relwidth = relwidth
+        self.relheight = relheight
+        self.anchor = anchor
 
         self.fill = fill
         self.outline = outline
@@ -1246,22 +1248,70 @@ class ezRectangle():
         self.visibility = "normal"
 
         # --- previous states ---
-        self.previous_relx1 = self.relx1
-        self.previous_rely1 = self.rely1
-        self.previous_relx2 = self.relx2
-        self.previous_rely2 = self.rely2
+        self.previous_relx = self.relx
+        self.previous_rely = self.rely
+        self.previous_relwidth = self.relwidth
+        self.previous_relheight = self.relheight
         self.previous_fill = self.fill
         self.previous_outline = self.outline
         self.previous_relstroke = self.relstroke
         self.previous_transparency = self.transparency
         self.previous_visibility = self.visibility
 
+        if self.anchor == "center":
+            relx1 = self.relx - self.relwidth/2
+            relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely - self.relheight/2
+            rely2 = self.rely + self.relheight/2
+        elif self.anchor == "n":
+            relx1 = self.relx - self.relwidth/2
+            relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely
+        elif self.anchor == "ne":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely
+        elif self.anchor == "e":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely - self.relheight/2
+            rely2 = self.rely + self.relheight/2
+        elif self.anchor == "se":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely
+            rely2 = self.rely + self.relheight
+        elif self.anchor == "s":
+            relx1 = self.relx - self.relwidth/2
+            relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely
+            rely2 = self.rely + self.relheight
+        elif self.anchor == "sw":
+            relx1 = self.relx - self.relwidth
+            relx2 = self.relx
+            rely1 = self.rely
+            rely2 = self.rely + self.relheight
+        elif self.anchor == "w":
+            relx1 = self.relx - self.relwidth
+            relx2 = self.relx
+            rely1 = self.rely - self.relheight/2
+            rely2 = self.rely + self.relheight/2
+        elif self.anchor == "nw":
+            relx1 = self.relx - self.relwidth
+            relx2 = self.relx
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely
+        else:
+            raise ValueError(f"ERROR in ezRectangle class: anchor is \"{self.anchor}\" when anchor can only be one of these: n, ne, e, se, s, sw, w, nw, or center")
+
         # create rectangle
         self.rect_id = rglobals.canvas.create_rectangle(
-            ((self.relx1 / 10000) * rglobals.sq_size)+rglobals.x_offset,
-            ((self.rely1 / 10000) * rglobals.sq_size)+rglobals.y_offset,
-            ((self.relx2 / 10000) * rglobals.sq_size)+rglobals.x_offset,
-            ((self.rely2 / 10000) * rglobals.sq_size)+rglobals.y_offset,
+            ((relx1 / 10000) * rglobals.sq_size)+rglobals.x_offset,
+            ((rely1 / 10000) * rglobals.sq_size)+rglobals.y_offset,
+            ((relx2 / 10000) * rglobals.sq_size)+rglobals.x_offset,
+            ((rely2 / 10000) * rglobals.sq_size)+rglobals.y_offset,
             fill=self.fill,
             outline=self.outline,
             width=self.relstroke * (rglobals.sq_size / 600)
@@ -1273,24 +1323,17 @@ class ezRectangle():
     def show(self):
         self.visibility = "normal"
 
-    def SetPosition(self, relx1="NULL", rely1="NULL", relx2="NULL", rely2="NULL"):
-        if relx1 != "NULL":
-            self.relx1 = relx1
-        if rely1 != "NULL":
-            self.rely1 = rely1
-        if relx2 != "NULL":
-            self.relx2 = relx2
-        if rely2 != "NULL":
-            self.rely2 = rely2
-    def ChangePosition(self, dx1="NULL", dy1="NULL", dx2="NULL", dy2="NULL"):
-        if dx1 != "NULL":
-            self.relx1 += dx1
-        if dy1 != "NULL":
-            self.rely1 += dy1
-        if dx2 != "NULL":
-            self.relx2 += dx2
-        if dy2 != "NULL":
-            self.rely2 += dy2
+    def SetPosition(self, relx="NULL", rely="NULL"):
+        if relx != "NULL":
+            self.relx = relx
+        if rely != "NULL":
+            self.rely = rely
+
+    def ChangePosition(self, dx="NULL", dy="NULL"):
+        if dx != "NULL":
+            self.relx += dx
+        if dy != "NULL":
+            self.rely += dy
 
     def SetStroke(self, new_relstroke):
         self.relstroke = new_relstroke
@@ -1327,16 +1370,59 @@ class ezRectangle():
 
     def MouseHovering(self, additional_offset_x1=0, additional_offset_y1=0,
                       additional_offset_x2=0, additional_offset_y2=0):
+        if self.anchor == "center":
+            relx1 = self.relx - self.relwidth/2
+            relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely - self.relheight/2
+            rely2 = self.rely + self.relheight/2
+        elif self.anchor == "n":
+            relx1 = self.relx - self.relwidth/2
+            relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely 
+        elif self.anchor == "ne":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely 
+        elif self.anchor == "e":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely - self.relheight/2
+            rely2 = self.rely + self.relheight/2
+        elif self.anchor == "se":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely
+            rely2 = self.rely + self.relheight
+        elif self.anchor == "s":
+            relx1 = self.relx - self.relwidth/2
+            relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely
+            rely2 = self.rely + self.relheight
+        elif self.anchor == "sw":
+            relx1 = self.relx - self.relwidth
+            relx2 = self.relx
+            rely1 = self.rely
+            rely2 = self.rely + self.relheight
+        elif self.anchor == "w":
+            relx1 = self.relx - self.relwidth
+            relx2 = self.relx
+            rely1 = self.rely - self.relheight/2
+            rely2 = self.rely + self.relheight/2
+        elif self.anchor == "nw":
+            relx1 = self.relx - self.relwidth
+            relx2 = self.relx
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely
+        else:
+            raise ValueError(f"ERROR in ezRectangle class: anchor is \"{self.anchor}\" when anchor can only be one of these: n, ne, e, se, s, sw, w, nw, or center")
 
-        x1 = min(self.relx1, self.relx2)
-        y1 = min(self.rely1, self.rely2)
-        x2 = max(self.relx1, self.relx2)
-        y2 = max(self.rely1, self.rely2)
 
-        x1 += additional_offset_x1
-        y1 += additional_offset_y1
-        x2 += additional_offset_x2
-        y2 += additional_offset_y2
+        x1 = min(relx1, relx2) + additional_offset_x1
+        y1 = min(rely1, rely2) + additional_offset_y1
+        x2 = max(relx1, relx2) + additional_offset_x2
+        y2 = max(rely1, rely2) + additional_offset_y2
 
         return x1 < rglobals.relmouse_x < x2 and y1 < rglobals.relmouse_y < y2
 
@@ -1347,10 +1433,10 @@ class ezRectangle():
     def Update(self):
 
         PositionChanged = (
-            self.relx1 != self.previous_relx1 or
-            self.rely1 != self.previous_rely1 or
-            self.relx2 != self.previous_relx2 or
-            self.rely2 != self.previous_rely2 or
+            self.relx != self.previous_relx or
+            self.rely != self.previous_rely or
+            self.relwidth != self.previous_relwidth or
+            self.relheight != self.previous_relheight or
             rglobals.sq_size != rglobals.previous_sq_size
         )
 
@@ -1370,8 +1456,8 @@ class ezRectangle():
 
         # --- auto bounds visibility ---
         in_bounds = (
-            rglobals.minimum_relx < self.relx1 < rglobals.maximum_relx or
-            rglobals.minimum_relx < self.relx2 < rglobals.maximum_relx
+            rglobals.minimum_relx < self.relx < rglobals.maximum_relx and
+            rglobals.minimum_rely < self.rely < rglobals.maximum_rely
         )
 
         if not in_bounds:
@@ -1379,11 +1465,59 @@ class ezRectangle():
 
         # --- position update ---
         if PositionChanged or rglobals.WindowChanged or rglobals.ScrollChanged:
+            if self.anchor == "center":
+                relx1 = self.relx - self.relwidth/2
+                relx2 = self.relx + self.relwidth/2
+                rely1 = self.rely - self.relheight/2
+                rely2 = self.rely + self.relheight/2
+            elif self.anchor == "n":
+                relx1 = self.relx - self.relwidth/2
+                relx2 = self.relx + self.relwidth/2
+                rely1 = self.rely - self.relheight
+                rely2 = self.rely 
+            elif self.anchor == "ne":
+                relx1 = self.relx
+                relx2 = self.relx + self.relwidth
+                rely1 = self.rely - self.relheight
+                rely2 = self.rely 
+            elif self.anchor == "e":
+                relx1 = self.relx
+                relx2 = self.relx + self.relwidth
+                rely1 = self.rely - self.relheight/2
+                rely2 = self.rely + self.relheight/2
+            elif self.anchor == "se":
+                relx1 = self.relx
+                relx2 = self.relx + self.relwidth
+                rely1 = self.rely
+                rely2 = self.rely + self.relheight
+            elif self.anchor == "s":
+                relx1 = self.relx - self.relwidth/2
+                relx2 = self.relx + self.relwidth/2
+                rely1 = self.rely
+                rely2 = self.rely + self.relheight
+            elif self.anchor == "sw":
+                relx1 = self.relx - self.relwidth
+                relx2 = self.relx
+                rely1 = self.rely
+                rely2 = self.rely + self.relheight
+            elif self.anchor == "w":
+                relx1 = self.relx - self.relwidth
+                relx2 = self.relx
+                rely1 = self.rely - self.relheight/2
+                rely2 = self.rely + self.relheight/2
+            elif self.anchor == "nw":
+                relx1 = self.relx - self.relwidth
+                relx2 = self.relx
+                rely1 = self.rely - self.relheight
+                rely2 = self.rely
+            else:
+                raise ValueError(f"ERROR in ezRectangle class: anchor is \"{self.anchor}\" when anchor can only be one of these: n, ne, e, se, s, sw, w, nw, or center")
 
-            x1 = ((self.relx1 / 10000) * rglobals.sq_size)+rglobals.x_offset
-            y1 = ((self.rely1 / 10000) * rglobals.sq_size)+rglobals.y_offset
-            x2 = ((self.relx2 / 10000) * rglobals.sq_size)+rglobals.x_offset
-            y2 = ((self.rely2 / 10000) * rglobals.sq_size)+rglobals.y_offset
+
+            x1 = ((relx1 / 10000) * rglobals.sq_size)+rglobals.x_offset
+            y1 = ((rely1 / 10000) * rglobals.sq_size)+rglobals.y_offset
+            x2 = ((relx2 / 10000) * rglobals.sq_size)+rglobals.x_offset
+            y2 = ((rely2 / 10000) * rglobals.sq_size)+rglobals.y_offset
 
             if not self.scrolling:
                 x1 += rglobals.scroll_x
@@ -1419,10 +1553,10 @@ class ezRectangle():
         self._store_previous()
 
     def _store_previous(self):
-        self.previous_relx1 = self.relx1
-        self.previous_rely1 = self.rely1
-        self.previous_relx2 = self.relx2
-        self.previous_rely2 = self.rely2
+        self.previous_relx = self.relx
+        self.previous_rely = self.rely
+        self.previous_relwidth = self.relwidth
+        self.previous_relheight = self.relheight
         self.previous_fill = self.fill
         self.previous_outline = self.outline
         self.previous_relstroke = self.relstroke
