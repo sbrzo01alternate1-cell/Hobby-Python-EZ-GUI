@@ -92,6 +92,8 @@ class ezWindow():
         self.background=background
         self.title=title
         rglobals.root = tk.Tk()
+        rglobals.relmouse_x = 0
+        rglobals.relmouse_y = 0
         rglobals.root.geometry(f"{self.width}x{self.height}")
         rglobals.canvas = tk.Canvas(rglobals.root, highlightthickness=0,bg=self.background)
         rglobals.canvas.pack(fill="both", expand=True)
@@ -135,6 +137,7 @@ class ezWindow():
         rglobals.root.bind("<ButtonPress>", on_press)
         rglobals.root.bind("<ButtonRelease>", on_release)
         rglobals.AllItems = set()
+        rglobals.AllWidgets = set()
         rglobals.root.protocol("WM_DELETE_WINDOW", on_close)
         rglobals.root.title(self.title)
     def SetBackground(self,background="#d9d9d9"):
@@ -233,6 +236,10 @@ rglobals.minimum_rely: {rglobals.minimum_rely}
 
 rglobals.min_rel_size is the minimum drawing size for images and whatever. If an image or something is smaller than this, it will not draw to save RAM and CPU.
 rglobals.min_rel_size: {rglobals.min_rel_size}
+
+rglobals.relmouse_x means the current position of the mouse x
+rglobals.relmouse_y same thing but mouse y
+rglobals.relmouse_x and y: {rglobals.relmouse_x}, {rglobals.relmouse_y}
 
 rglobals.mouse_clicked means if the mouse buttons are clicked a single time:
 rglobals.mouse_clicked = {rglobals.mouse_clicked}
@@ -656,6 +663,8 @@ class ezText():
         self.font_size = int((rglobals.sq_size - 4.36842) *
                              rglobals.font_scale *
                              self.relfont_size)
+        if self.font_size==0:
+            self.font_size = 1
         self.text_id = rglobals.canvas.create_text(
             int((self.relx/10000)*rglobals.sq_size)+rglobals.x_offset,
             int((self.rely/10000)*rglobals.sq_size)+rglobals.y_offset,
@@ -716,7 +725,8 @@ class ezText():
         x2 += additional_offset_x2
         y2 += additional_offset_y2
         return x1 < rglobals.relmouse_x < x2 and y1 < rglobals.relmouse_y < y2
-    def MouseClicked(self, *args):
+    def MouseClicked(self, additional_offset_x1=0, additional_offset_y1=0,
+                      additional_offset_x2=0, additional_offset_y2=0):
         return rglobals.mouse_clicked['left'] and self.MouseHovering(*args)
     # --- optimized update ---
     def Update(self):
@@ -759,9 +769,9 @@ class ezText():
             rglobals.canvas.coords(self.text_id, x, y)
         # --- font size update ---
         if SizeChanged or AnchorChanged or FontChanged:
-            self.font_size = int((rglobals.sq_size - 4.36842) *
-                                 rglobals.font_scale *
-                                 self.relfont_size)
+            self.font_size = round((rglobals.sq_size - 4.36842) * rglobals.font_scale * self.relfont_size)
+            #print(self.relfont_size)
+            #print((rglobals.sq_size - 4.36842) * rglobals.font_scale * self.relfont_size)
             rglobals.canvas.itemconfig(
                 self.text_id,
                 font=(self.font_name, self.font_size),
@@ -1229,7 +1239,7 @@ MyezBoundaries.Update() Usually handled automatically! This checks behind the sc
 
 #anchor = n, ne, e, se, s, sw, w, nw, or center
 class ezRectangle():
-    def __init__(self, relx=100, rely=100, relwidth=200, relheight=200,
+    def __init__(self, relx=5000, rely=5000, relwidth=2000, relheight=2000,
                  fill="blue", outline="black", relstroke=1,
                  scrolling=True, transparency=10000, anchor="center"):
 
@@ -1263,42 +1273,42 @@ class ezRectangle():
             relx2 = self.relx + self.relwidth/2
             rely1 = self.rely - self.relheight/2
             rely2 = self.rely + self.relheight/2
-        elif self.anchor == "n":
-            relx1 = self.relx - self.relwidth/2
-            relx2 = self.relx + self.relwidth/2
-            rely1 = self.rely - self.relheight
-            rely2 = self.rely
-        elif self.anchor == "ne":
-            relx1 = self.relx
-            relx2 = self.relx + self.relwidth
-            rely1 = self.rely - self.relheight
-            rely2 = self.rely
-        elif self.anchor == "e":
-            relx1 = self.relx
-            relx2 = self.relx + self.relwidth
-            rely1 = self.rely - self.relheight/2
-            rely2 = self.rely + self.relheight/2
-        elif self.anchor == "se":
-            relx1 = self.relx
-            relx2 = self.relx + self.relwidth
-            rely1 = self.rely
-            rely2 = self.rely + self.relheight
         elif self.anchor == "s":
             relx1 = self.relx - self.relwidth/2
             relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely
+        elif self.anchor == "sw":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely
+        elif self.anchor == "w":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely - self.relheight/2
+            rely2 = self.rely + self.relheight/2
+        elif self.anchor == "nw":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
             rely1 = self.rely
             rely2 = self.rely + self.relheight
-        elif self.anchor == "sw":
+        elif self.anchor == "n":
+            relx1 = self.relx - self.relwidth/2
+            relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely
+            rely2 = self.rely + self.relheight
+        elif self.anchor == "ne":
             relx1 = self.relx - self.relwidth
             relx2 = self.relx
             rely1 = self.rely
             rely2 = self.rely + self.relheight
-        elif self.anchor == "w":
+        elif self.anchor == "e":
             relx1 = self.relx - self.relwidth
             relx2 = self.relx
             rely1 = self.rely - self.relheight/2
             rely2 = self.rely + self.relheight/2
-        elif self.anchor == "nw":
+        elif self.anchor == "se":
             relx1 = self.relx - self.relwidth
             relx2 = self.relx
             rely1 = self.rely - self.relheight
@@ -1334,6 +1344,18 @@ class ezRectangle():
             self.relx += dx
         if dy != "NULL":
             self.rely += dy
+
+    def SetSize(self, relwidth="NULL", relheight="NULL"):
+        if relwidth != "NULL":
+            self.relwidth = relwidth
+        if relheight != "NULL":
+            self.relheight = relheight
+
+    def ChangePosition(self, dw="NULL", dh="NULL"):
+        if dw != "NULL":
+            self.relwidth += dw
+        if dh != "NULL":
+            self.relheight += dh
 
     def SetStroke(self, new_relstroke):
         self.relstroke = new_relstroke
@@ -1375,42 +1397,42 @@ class ezRectangle():
             relx2 = self.relx + self.relwidth/2
             rely1 = self.rely - self.relheight/2
             rely2 = self.rely + self.relheight/2
-        elif self.anchor == "n":
-            relx1 = self.relx - self.relwidth/2
-            relx2 = self.relx + self.relwidth/2
-            rely1 = self.rely - self.relheight
-            rely2 = self.rely 
-        elif self.anchor == "ne":
-            relx1 = self.relx
-            relx2 = self.relx + self.relwidth
-            rely1 = self.rely - self.relheight
-            rely2 = self.rely 
-        elif self.anchor == "e":
-            relx1 = self.relx
-            relx2 = self.relx + self.relwidth
-            rely1 = self.rely - self.relheight/2
-            rely2 = self.rely + self.relheight/2
-        elif self.anchor == "se":
-            relx1 = self.relx
-            relx2 = self.relx + self.relwidth
-            rely1 = self.rely
-            rely2 = self.rely + self.relheight
         elif self.anchor == "s":
             relx1 = self.relx - self.relwidth/2
             relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely
+        elif self.anchor == "sw":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely - self.relheight
+            rely2 = self.rely
+        elif self.anchor == "w":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
+            rely1 = self.rely - self.relheight/2
+            rely2 = self.rely + self.relheight/2
+        elif self.anchor == "nw":
+            relx1 = self.relx
+            relx2 = self.relx + self.relwidth
             rely1 = self.rely
             rely2 = self.rely + self.relheight
-        elif self.anchor == "sw":
+        elif self.anchor == "n":
+            relx1 = self.relx - self.relwidth/2
+            relx2 = self.relx + self.relwidth/2
+            rely1 = self.rely
+            rely2 = self.rely + self.relheight
+        elif self.anchor == "ne":
             relx1 = self.relx - self.relwidth
             relx2 = self.relx
             rely1 = self.rely
             rely2 = self.rely + self.relheight
-        elif self.anchor == "w":
+        elif self.anchor == "e":
             relx1 = self.relx - self.relwidth
             relx2 = self.relx
             rely1 = self.rely - self.relheight/2
             rely2 = self.rely + self.relheight/2
-        elif self.anchor == "nw":
+        elif self.anchor == "se":
             relx1 = self.relx - self.relwidth
             relx2 = self.relx
             rely1 = self.rely - self.relheight
@@ -1426,8 +1448,13 @@ class ezRectangle():
 
         return x1 < rglobals.relmouse_x < x2 and y1 < rglobals.relmouse_y < y2
 
-    def MouseClicked(self, *args):
-        return rglobals.mouse_clicked['left'] and self.MouseHovering(*args)
+    def MouseClicked(self, additional_offset_x1=0, additional_offset_y1=0,
+                      additional_offset_x2=0, additional_offset_y2=0):
+        return rglobals.mouse_clicked['left'] and self.MouseHovering(additional_offset_x1, additional_offset_y1, additional_offset_x2, additional_offset_y2)
+
+    def MouseHeld(self, additional_offset_x1=0, additional_offset_y1=0,
+                      additional_offset_x2=0, additional_offset_y2=0):
+        return rglobals.mouse_held['left'] and self.MouseHovering(additional_offset_x1, additional_offset_y1, additional_offset_x2, additional_offset_y2)
 
     # --- optimized update ---
     def Update(self):
@@ -1470,42 +1497,42 @@ class ezRectangle():
                 relx2 = self.relx + self.relwidth/2
                 rely1 = self.rely - self.relheight/2
                 rely2 = self.rely + self.relheight/2
-            elif self.anchor == "n":
-                relx1 = self.relx - self.relwidth/2
-                relx2 = self.relx + self.relwidth/2
-                rely1 = self.rely - self.relheight
-                rely2 = self.rely 
-            elif self.anchor == "ne":
-                relx1 = self.relx
-                relx2 = self.relx + self.relwidth
-                rely1 = self.rely - self.relheight
-                rely2 = self.rely 
-            elif self.anchor == "e":
-                relx1 = self.relx
-                relx2 = self.relx + self.relwidth
-                rely1 = self.rely - self.relheight/2
-                rely2 = self.rely + self.relheight/2
-            elif self.anchor == "se":
-                relx1 = self.relx
-                relx2 = self.relx + self.relwidth
-                rely1 = self.rely
-                rely2 = self.rely + self.relheight
             elif self.anchor == "s":
                 relx1 = self.relx - self.relwidth/2
                 relx2 = self.relx + self.relwidth/2
+                rely1 = self.rely - self.relheight
+                rely2 = self.rely
+            elif self.anchor == "sw":
+                relx1 = self.relx
+                relx2 = self.relx + self.relwidth
+                rely1 = self.rely - self.relheight
+                rely2 = self.rely
+            elif self.anchor == "w":
+                relx1 = self.relx
+                relx2 = self.relx + self.relwidth
+                rely1 = self.rely - self.relheight/2
+                rely2 = self.rely + self.relheight/2
+            elif self.anchor == "nw":
+                relx1 = self.relx
+                relx2 = self.relx + self.relwidth
                 rely1 = self.rely
                 rely2 = self.rely + self.relheight
-            elif self.anchor == "sw":
+            elif self.anchor == "n":
+                relx1 = self.relx - self.relwidth/2
+                relx2 = self.relx + self.relwidth/2
+                rely1 = self.rely
+                rely2 = self.rely + self.relheight
+            elif self.anchor == "ne":
                 relx1 = self.relx - self.relwidth
                 relx2 = self.relx
                 rely1 = self.rely
                 rely2 = self.rely + self.relheight
-            elif self.anchor == "w":
+            elif self.anchor == "e":
                 relx1 = self.relx - self.relwidth
                 relx2 = self.relx
                 rely1 = self.rely - self.relheight/2
                 rely2 = self.rely + self.relheight/2
-            elif self.anchor == "nw":
+            elif self.anchor == "se":
                 relx1 = self.relx - self.relwidth
                 relx2 = self.relx
                 rely1 = self.rely - self.relheight
@@ -1592,12 +1619,12 @@ class ezRectangle():
         return f"""
 This is an ezRectangle object! It creates an easy rectangle on the screen and automatically handles drawing it, coloring it, and it is OPTIMIZED automatically, only updating when it needs to! So don't worry about optimizations.
 You can create an easy rectangle like this:
-MyezRectangle = ezRectangle(relx1={defaults['relx1']}, rely1={defaults['rely1']}, relx2={defaults['relx2']}, rely2={defaults['rely2']}, fill="{defaults['fill']}", outline="{defaults['outline']}", relstroke={defaults['relstroke']}, scrolling={defaults['scrolling']}, transparency={defaults['transparency']})
+MyezRectangle = ezRectangle(relx={defaults['relx']}, rely={defaults['rely']}, relwidth={defaults['relwidth']}, relheight={defaults['relheight']}, fill="{defaults['fill']}", outline="{defaults['outline']}", relstroke={defaults['relstroke']}, scrolling={defaults['scrolling']}, transparency={defaults['transparency']})
 WOAH lots of stuff there! Don't worry, most of it's not necessary, but let's explain it!
-relx1 means relative starting x position, meaning it automatically changes based on the window size, so you don't have to worry about other windows or devices!
-rely1 means relative starting y position.
-relx2 means relative ending x position.
-rely2 means relative ending y position.
+relx means relative x position, meaning it automatically changes based on the window size, so you don't have to worry about other windows or devices!
+rely means relative y position.
+relwidth means the relative width position of the rectangle
+relheight means the relative height.
 fill means what color the inside of the rectangle is. You can use text names or hex codes like "#334455"!
 outline means the color of the border lines.
 relstroke is the size/thickness of that border outline.
@@ -1608,8 +1635,11 @@ Here are the functions you need:
 
 MyezRectangle.hide() This function makes the rectangle completely invisible. It does NOT delete it.
 MyezRectangle.show() This function makes the rectangle visible again if it was hidden.
-MyezRectangle.SetPosition(relx1="NULL", rely1="NULL", relx2="NULL", rely2="NULL") This sets specific relative positions for whichever coordinates you pass! It leaves the rest alone if you don't pass them.
-MyezRectangle.ChangePosition(dx1="NULL", dy1="NULL", dx2="NULL", dy2="NULL") This shifts the rectangle's corners relative to where they currently are by adding or subtracting.
+MyezRectangle.SetPosition(relx=10, rely=10) This sets specific relative positions for whichever coordinates you pass! It leaves the rest alone if you don't pass them.
+MyezRectangle.ChangePosition(dx=10, dy=10) This shifts the rectangle's corners relative to where they currently are by adding or subtracting.
+MyezRectangle.SetSize(relwidth=10,relheight=10)
+MyezRectangle.ChangeSize(dw=10,dh=10)
+
 MyezRectangle.SetStroke(new_relstroke) Directly sets the thickness of the rectangle's border line.
 MyezRectangle.ChangeStroke(delta_stroke) Adds or subtracts thickness to the rectangle's border line.
 MyezRectangle.SetFill(new_fill) Dynamically changes the color inside the rectangle.
@@ -1618,7 +1648,8 @@ MyezRectangle.SetScroll(scrolling=True) Sets whether the rectangle floats static
 MyezRectangle.ChangeTransparency(amount) Changes the stipple transparency by adding/subtracting an amount. Max is 10,000.
 MyezRectangle.SetTransparency(transparency) Directly sets the stipple transparency to a specific value between 0 and 10,000.
 MyezRectangle.MouseHovering(additional_offset_x1=0, additional_offset_y1=0, additional_offset_x2=0, additional_offset_y2=0) Checks if the user's mouse is hovering anywhere inside the bounds of the rectangle! Super useful for making custom UI panels or invisible button zones. Returns True or False.
-MyezRectangle.MouseClicked(*args) Returns True if the user left-clicks inside the rectangle boundaries. Great for UI components!
+MyezRectangle.MouseClicked(additional_offset_x1=0, additional_offset_y1=0, additional_offset_x2=0, additional_offset_y2=0) Returns True if the user left-clicks inside the rectangle boundaries. Great for UI components!
+MyezRectangle.MouseHeld(additional_offset_x1=0, additional_offset_y1=0, additional_offset_x2=0, additional_offset_y2=0) Returns True if the user left-mouse-holds inside the rectangle boundaries. Great for UI components!
 MyezRectangle.delete() This completely wipes the rectangle from the canvas tracker and handles memory cleanup immediately.
 
 MyezRectangle.Update() Probably not needed. This syncs up all position, sizing, color, border, and visibility adjustments at once behind the scenes per frame!
@@ -1866,10 +1897,13 @@ MyezOval.Update() Probably not needed. This handles processing any shifts in siz
 
 
 class ezPolygon():
-    def __init__(self, points, fill="blue", outline="black",
+    def __init__(self, points="ERROR", fill="blue", outline="black",
                  relstroke=1, scrolling=True, transparency=10000):
 
         # [(x1,y1),(x2,y2)...]
+        if points == "ERROR":
+            raise TypeError("ERROR ezPolygon.__init__ missing 1 required positional argument: 'points'. It needs to be like this: MyezPolygon = ezPolygon([(x1,y1),(x2,y2)...])")
+
         self.points = points
 
         self.fill = fill
@@ -3768,22 +3802,120 @@ MyezRadioButtonGroup.Update() Uh, you probably don't need this. This applies cha
 
 
 
-
+#This class is completely made by me alone. I didn't use any 
+#AI to help since AI kept failing. It took me multiple days to make.
 class ezSlider:
-    def __init__(self):
-        print("This is unfinished, and I'd have to manually program this. ChatGPT and Google Gemini aren't working.]")
-        print("I don't want to yet. I'm skipping the slider")
-        print("until I need it.")
-        #Here's how I WOULD do it though:
-        #First create the background, with my ezRectangle class
-        #Then from that, check if it's clicked, and where the mouse is in there
-        #Create a knob with 2 smaller ezRectangles, that always go to the mouse position if clicked.
-        #Calculate the value based on where the mouse is.
-        #Write that value above the slider using ezText
-        #The built in slider is NOT easy to program, it doesn't scale.
-        #Input values would be:
-        #relx, rely, relwidth, relheight
-        #Knob values are calculated based on the relheight
+    def __init__(self,relx=1000,rely=1000,relwidth=1000,relheight=9000,
+                 orientation="vertical",MainRectangleFill="#b3b3b3",
+                 MainRectangleOutline="#000000",MainRectangleRelstroke=2,SliderSize=1000,
+                 SliderFill="#d9d9d9",SliderOutline="#828282",LowerValue=0,
+                 HigherValue=10000,CurrentValue=5000,SliderRelstroke=2,relfont_size=1500,
+                 ClickIncrement=1000, SidesFill="#C9C9C9", ArrowsFill="#7C7C7C",
+                 TextValueDistance=200, TextGuideDistance=200):
+        self.relx = relx
+        self.rely = rely
+        self.relwidth=relwidth
+        self.relheight=relheight
+        self.orientation=orientation
+        self.MainRectangleFill = MainRectangleFill
+        self.MainRectangleOutline = MainRectangleOutline
+        self.SliderSize = SliderSize
+        self.SliderFill = SliderFill
+        self.SliderOutline = SliderOutline
+        self.MainRectangleRelstroke = MainRectangleRelstroke
+        self.SliderRelstroke = SliderRelstroke
+        self.LowerValue = LowerValue
+        self.HigherValue = HigherValue
+        self.CurrentValue = CurrentValue
+        self.relfont_size = relfont_size
+        self.ClickIncrement = ClickIncrement
+        self.MainRectangle = ezRectangle(relx=self.relx, rely=self.rely, relwidth=self.relwidth, relheight=self.relheight,anchor="nw",fill=self.MainRectangleFill,outline=self.MainRectangleOutline,relstroke=self.MainRectangleRelstroke)
+        self.Slider1_relwidth = self.relwidth
+        self.Slider1_relheight = (self.SliderSize/10000)*self.relheight
+        self.Slider1_relx = self.relx
+        self.Slider1_starty = self.rely + self.Slider1_relheight + self.relwidth
+        self.Slider1_endy = (self.rely+self.relheight) - self.Slider1_relheight - self.relwidth
+        self.Slider1_ybounds = self.Slider1_endy - self.Slider1_starty
+        PercentOfBar = (CurrentValue-LowerValue)/(HigherValue-LowerValue)
+        self.Slider1_rely = self.Slider1_starty + PercentOfBar*self.Slider1_ybounds
+
+        self.Slider1 = ezRectangle(relx=self.Slider1_relx,rely=self.Slider1_rely,relwidth=self.Slider1_relwidth,relheight=self.Slider1_relheight,anchor="nw",fill=self.SliderFill,outline=self.SliderOutline,relstroke=SliderRelstroke)
+        self.Slider2 = ezRectangle(relx=self.Slider1_relx,rely=self.Slider1_rely,relwidth=self.Slider1_relwidth,relheight=self.Slider1_relheight,anchor="sw",fill=self.SliderFill,outline=self.SliderOutline,relstroke=SliderRelstroke)
+
+        self.Side1 = ezRectangle(relx=self.relx, rely=self.rely, relwidth=self.relwidth, relheight=self.relwidth, anchor="nw", fill=SidesFill)
+        self.Side2 = ezRectangle(relx=self.relx, rely=self.rely+self.relheight, relwidth=self.relwidth, relheight=self.relwidth, anchor="sw", fill=SidesFill)
+
+        self.triangle1 = ezPolygon(fill=ArrowsFill,outline=ArrowsFill,points=[(self.relx+self.relwidth/2,self.rely+self.relwidth/5), (self.relx+self.relwidth/5,self.rely+self.relwidth-self.relwidth/5), (self.relx+self.relwidth - self.relwidth/5,self.rely+self.relwidth-self.relwidth/5)])
+        self.triangle2 = ezPolygon(fill=ArrowsFill,outline=ArrowsFill,points=[(self.relx+self.relwidth/2,(self.relheight+self.rely)-self.relwidth/5), (self.relx+self.relwidth/5,(self.relheight+self.rely)-self.relwidth+self.relwidth/5), (self.relx+self.relwidth-self.relwidth/5,(self.relheight+self.rely)-self.relwidth+self.relwidth/5)])
+        
+        self.text = ezText(CurrentValue, relx=self.relx+self.relwidth*1.4+TextValueDistance, rely=self.rely+self.relheight/2, relfont_size=self.relfont_size)
+        
+        self.FifthValue = round((HigherValue-LowerValue)/5)
+        self.yFifth = self.Slider1_ybounds/5
+
+        self.GuideText0 = ezText(self.LowerValue                  , relx=(self.relx-self.relwidth)-len(str(self.LowerValue+self.FifthValue*4))*70-TextGuideDistance, rely=(self.Slider1_starty              )-200, relfont_size=self.relfont_size)
+        self.GuideText1 = ezText(self.LowerValue+self.FifthValue  , relx=(self.relx-self.relwidth)-len(str(self.LowerValue+self.FifthValue*4))*70-TextGuideDistance, rely=(self.Slider1_starty+self.yFifth  )-200, relfont_size=self.relfont_size)
+        self.GuideText2 = ezText(self.LowerValue+self.FifthValue*2, relx=(self.relx-self.relwidth)-len(str(self.LowerValue+self.FifthValue*4))*70-TextGuideDistance, rely=(self.Slider1_starty+self.yFifth*2)-200, relfont_size=self.relfont_size)
+        self.GuideText3 = ezText(self.LowerValue+self.FifthValue*3, relx=(self.relx-self.relwidth)-len(str(self.LowerValue+self.FifthValue*4))*70-TextGuideDistance, rely=(self.Slider1_starty+self.yFifth*3)-200, relfont_size=self.relfont_size)
+        self.GuideText4 = ezText(self.LowerValue+self.FifthValue*4, relx=(self.relx-self.relwidth)-len(str(self.LowerValue+self.FifthValue*4))*70-TextGuideDistance, rely=(self.Slider1_starty+self.yFifth*4)-200, relfont_size=self.relfont_size)
+        self.GuideText5 = ezText(self.HigherValue                 , relx=(self.relx-self.relwidth)-len(str(self.LowerValue+self.FifthValue*4))*70-TextGuideDistance, rely=(self.Slider1_starty+self.yFifth*5)-200, relfont_size=self.relfont_size)
+
+        self.dragging = False
+        rglobals.AllWidgets.add(self)
+    def SetValue(self, NewValue):
+        if NewValue > self.HigherValue:
+            self.CurrentValue = self.HigherValue
+        elif NewValue < self.LowerValue:
+            self.CurrentValue = self.LowerValue
+        else:
+            self.CurrentValue = NewValue
+        PercentOfBar = (self.CurrentValue-self.LowerValue)/(self.HigherValue-self.LowerValue)
+        self.Slider1.rely = self.Slider1_starty + PercentOfBar*self.Slider1_ybounds
+        self.Slider2.rely = self.Slider1_starty + PercentOfBar*self.Slider1_ybounds
+
+    def ChangeValue(self, AdditionalValue):
+        self.SetValue(self.CurrentValue + AdditionalValue)
+    def UpdateLogic(self):
+        if self.Slider1.MouseClicked(additional_offset_y1=-self.Slider1.relheight):
+            self.dragging = True
+        if not rglobals.mouse_held["left"]:
+            self.dragging = False
+        if self.dragging:
+            if self.Slider1_endy > rglobals.relmouse_y > self.Slider1_starty:
+                self.Slider1.rely = rglobals.relmouse_y
+                self.Slider2.rely = rglobals.relmouse_y
+            elif rglobals.relmouse_y <= self.Slider1_starty:
+                self.Slider1.rely = self.Slider1_starty
+                self.Slider2.rely = self.Slider1_starty
+            elif self.Slider1_endy <= rglobals.relmouse_y:
+                self.Slider1.rely = self.Slider1_endy
+                self.Slider2.rely = self.Slider1_endy
+        if self.Side1.MouseClicked():
+            if self.CurrentValue > self.LowerValue + self.ClickIncrement:
+                self.CurrentValue = self.CurrentValue - self.ClickIncrement
+            else:
+                self.CurrentValue = self.LowerValue
+            PercentOfBar = (self.CurrentValue-self.LowerValue)/(self.HigherValue-self.LowerValue)
+            self.Slider1.rely = self.Slider1_starty + PercentOfBar*self.Slider1_ybounds
+            self.Slider2.rely = self.Slider1_starty + PercentOfBar*self.Slider1_ybounds
+
+        if self.Side2.MouseClicked():
+            if self.CurrentValue < self.HigherValue - self.ClickIncrement:
+                self.CurrentValue = self.CurrentValue + self.ClickIncrement
+            else:
+                self.CurrentValue = self.HigherValue
+            PercentOfBar = (self.CurrentValue-self.LowerValue)/(self.HigherValue-self.LowerValue)
+            self.Slider1.rely = self.Slider1_starty + PercentOfBar*self.Slider1_ybounds
+            self.Slider2.rely = self.Slider1_starty + PercentOfBar*self.Slider1_ybounds
+        TempValue1 = self.Slider1.rely - self.Slider1_starty
+        PercentOfBar = TempValue1/self.Slider1_ybounds
+        BoundsOfValues = self.HigherValue - self.LowerValue
+        self.CurrentValue = round(PercentOfBar*BoundsOfValues+self.LowerValue)
+        self.text.SetText(self.CurrentValue)
+
+
+
+
 
 class ezSpinbox():
     def __init__(self, values, relx=2000, rely=2000, relwidth=3000, relheight=600,
@@ -4032,6 +4164,8 @@ def StartMainLoop():
     for key in previous_keys_held:
         if key not in rglobals.keys_held:
             rglobals.keys_released.add(key)
+    for MyWidget in rglobals.AllWidgets:
+        MyWidget.UpdateLogic()
 
 def EndMainLoop():
     global previous_keys_held
