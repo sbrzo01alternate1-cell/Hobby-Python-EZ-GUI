@@ -2747,9 +2747,18 @@ class ezScroll():
 
         rglobals.canvas.config(
             yscrollcommand=self.v_bar.set,
-            xscrollcommand=self.h_bar.set
+            xscrollcommand=self.h_bar.set,
+            yscrollincrement=1, 
+            xscrollincrement=1
         )
 
+        self.SetScrollCalled = False
+        self.CurrentScrollX = 0
+        self.CurrentScrollY = 0
+        self.ReferenceScrollX = 0
+        self.ReferenceScrollY = 0
+        self.previous_ReferenceScrollX = 0
+        self.previous_ReferenceScrollY = 0
         # initial draw
         self._recalculate()
         rglobals.AllItems.add(self)
@@ -2772,6 +2781,76 @@ class ezScroll():
 
     def ShowHorizontalScroll(self):
         self.allow_h = True
+
+    def SetScroll(self, NewScrollX=0, NewScrollY=0):
+        """
+        Moves the canvas viewport to the specified relative X and Y positions.
+        """
+        if NewScrollX > self.rel_v_width - 10000:
+            NewScrollX = self.rel_v_width - 10000
+        if NewScrollY > self.rel_v_height - 10000:
+            NewScrollY = self.rel_v_height - 10000
+        self.CurrentScrollX = NewScrollX
+        self.CurrentScrollY = NewScrollY
+        
+        # Calculate the total virtual pixel dimensions (same math as _recalculate)
+        pixel_v_w = int((self.rel_v_width / 10000) * rglobals.sq_size)
+        pixel_v_h = int((self.rel_v_height / 10000) * rglobals.sq_size)
+
+        # Fallback to current window size if layout isn't bigger than screen to avoid ZeroDivisionError
+        total_w = pixel_v_w if self.h_visible else rglobals.window_width
+        total_h = pixel_v_h if self.v_visible else rglobals.window_height
+
+        # Convert the incoming relative coordinates to pixels
+        target_pixel_x = (NewScrollX / 10000) * rglobals.sq_size
+        target_pixel_y = (NewScrollY / 10000) * rglobals.sq_size
+
+        # Calculate fractions (clamped between 0.0 and 1.0)
+        fraction_x = max(0.0, min(1.0, target_pixel_x / total_w)) if total_w > 0 else 0.0
+        fraction_y = max(0.0, min(1.0, target_pixel_y / total_h)) if total_h > 0 else 0.0
+
+        # Move the canvas views
+        rglobals.canvas.xview_moveto(fraction_x)
+        rglobals.canvas.yview_moveto(fraction_y)
+
+        # Tells the update function SetScroll was called
+        self.SetScrollCalled = True
+
+    def GetScrollReal(self):
+        """
+        Returns the current X and Y positions of the scroll in relative coordinates.
+        """
+        # Calculate total virtual pixel dimensions (same math as _recalculate)
+        pixel_v_w = int((self.rel_v_width / 10000) * rglobals.sq_size)
+        pixel_v_h = int((self.rel_v_height / 10000) * rglobals.sq_size)
+
+        total_w = pixel_v_w if self.h_visible else rglobals.window_width
+        total_h = pixel_v_h if self.v_visible else rglobals.window_height
+
+        # Get the current scroll fractions from the canvas (returns (start, end))
+        current_fraction_x = rglobals.canvas.xview()[0]
+        current_fraction_y = rglobals.canvas.yview()[0]
+
+        # Convert fractions back to total pixel positions
+        current_pixel_x = current_fraction_x * total_w
+        current_pixel_y = current_fraction_y * total_h
+
+        # Convert pixel positions back to relative coordinates
+        # Reverse of: pixel = (rel / 10000) * sq_size -> rel = (pixel * 10000) / sq_size
+        if rglobals.sq_size > 0:
+            current_scroll_x = (current_pixel_x * 10000) / rglobals.sq_size
+            current_scroll_y = (current_pixel_y * 10000) / rglobals.sq_size
+        else:
+            current_scroll_x = 0.0
+            current_scroll_y = 0.0
+
+        return current_scroll_x, current_scroll_y
+
+    def GetScroll(self):
+        """
+        Returns the current X and Y positions of the scroll in relative coordinates.
+        """
+        return self.CurrentScrollX, self.CurrentScrollY
 
     def _recalculate(self):
 
@@ -2813,7 +2892,14 @@ class ezScroll():
             self.previous_final_h = final_h
 
     def Update(self):
-
+        self.ReferenceScrollX, self.ReferenceScrollY = self.GetScrollReal()
+        ScrollChanged = not self.ReferenceScrollX==self.previous_ReferenceScrollX or not self.ReferenceScrollY==self.previous_ReferenceScrollY
+        #print(self.SetScrollCalled)
+        if not self.SetScrollCalled and ScrollChanged:
+            self.CurrentScrollX = self.ReferenceScrollX
+            self.CurrentScrollY = self.ReferenceScrollY
+        if self.SetScrollCalled:
+            self.SetScrollCalled = False
         SizeChanged = (
             self.rel_v_width != self.previous_rel_v_width or
             self.rel_v_height != self.previous_rel_v_height
@@ -2824,19 +2910,20 @@ class ezScroll():
             self.allow_h != self.previous_allow_h
         )
 
+        self._store_previous()
+
         if not (SizeChanged or VisibilityChanged or rglobals.WindowChanged):
             return
 
         self._recalculate()
 
-        self._store_previous()
-
     def _store_previous(self):
-
         self.previous_rel_v_width = self.rel_v_width
         self.previous_rel_v_height = self.rel_v_height
         self.previous_allow_v = self.allow_v
         self.previous_allow_h = self.allow_h
+        self.previous_ReferenceScrollX = self.ReferenceScrollX
+        self.previous_ReferenceScrollY = self.ReferenceScrollY
     def delete(self):
         # Remove scrollbars from canvas/root
         try:
